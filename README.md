@@ -8,3 +8,13 @@
 - 使用vuex创建历史标签栏组件
 - 用element-table做两个穿梭选择表格
 - 做自定义按钮控制表格和echarts图形联立，这都基于vue的数据响应，比较基础。
+
+## Project pre
+- install node.js
+- install @vue/cli
+  ```
+  npm install @vue/cli -s
+  ```
+- create vue project
+> 1. open the folder which you want create your vue project in, key "cmd" in and input "vue ui"
+> 2. input "vue create your-vue-project-name" directly in cmd
