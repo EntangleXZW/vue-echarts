@@ -1,5 +1,11 @@
 <template>
-    <div ref="main" :style="{ height: height, width: '100%' }"></div>
+    <div>
+        <div ref="main" :style="{ height: height, width: '100%' }"></div>
+        <div ref="tip" v-html="tip.html" :style="{ left: tip.left + 'px', top: tip.top + 'px', display: tip.display }"
+            class="tip">
+
+        </div>
+    </div>
 </template>
 
 <script>
@@ -7,6 +13,12 @@ import * as echarts from 'echarts'
 export default {
     data() {
         return {
+            tip: {
+                html: '',
+                left: '',
+                top: '',
+                display: '',
+            },
             option: {
                 title: {
                     text: '',
@@ -64,8 +76,8 @@ export default {
                 brush: {
                     toolbox: ['rect', 'lineX', 'lineY', 'clear'],
                     xAxisIndex: 0,
-                    throttleType: 'debounce',//开启选中延迟后调用回调延迟
-                    throttleDelay: 1000,//选中延迟后调用回调延迟时间
+                    // throttleType: 'debounce',//开启选中延迟后调用回调延迟
+                    // throttleDelay: 600,//选中延迟后调用回调延迟时间
                 },
                 xAxis: {
                     name: 'xlabel',
@@ -148,15 +160,49 @@ export default {
         this.setMyOption();
         window.addEventListener('resize', this.resizeChart);
         this.myChart.off('brushSelected');
+        this.myChart.dispatchAction({
+            type: 'takeGlobalCursor',
+            key: 'brush',
+            brushOption: {
+                brushType: 'rect'
+            }
+        });
         this.myChart.on('brushSelected', (params) => { // brushSelected
             // 柱状图  params.batch[0].selected[0].dataIndex
             var brushed = [];
             var brushComponent = params.batch[0];
             for (var sIdx = 0; sIdx < brushComponent.selected.length; sIdx++) {
                 var rawIndices = brushComponent.selected[sIdx].dataIndex;
-                var rawdata = this.option.series[sIdx].data.filter((v, i)=>{return rawIndices.indexOf(i)>=0});
+                var rawdata = this.option.series[sIdx].data.filter((v, i) => { return rawIndices.indexOf(i) >= 0 });
                 brushed.push('[ ' + this.option.series[sIdx].name + '] ' + rawdata.join(', '));
             }
+            if (params.batch[0].areas.length > 0) {
+                var coordinateX = null;
+                var coordinateY = null;
+                if (params.batch[0].areas[0].brushType == 'rect'){
+                    coordinateX = params.batch[0].areas[0].range[0][1];
+                    coordinateY = params.batch[0].areas[0].range[1][0];
+                }else if (params.batch[0].areas[0].brushType == 'lineX'){
+                    coordinateX = params.batch[0].areas[0].range[1];
+                    coordinateY = this.$refs.main.offsetTop + this.$refs.main.offsetHeight / 2;
+                }else if (params.batch[0].areas[0].brushType == 'lineY'){
+                    coordinateX = this.$refs.main.offsetLeft + this.$refs.main.offsetWidth / 2;
+                    coordinateY = params.batch[0].areas[0].range[1];
+                }  
+                this.tip.html = brushed.join('</br>');
+                this.tip.left = this.$refs.main.offsetLeft + coordinateX;
+                this.tip.top = this.$refs.main.offsetTop + coordinateY;
+                this.tip.display = '';
+            } else {
+                this.tip.display = 'none';
+            }
+
+            // this.$notify({
+            //     title: '选择数据',
+            //     dangerouslyUseHTMLString: true,
+            //     message: brushed.join('</br>')
+            // })
+            // ------------------------
             // 折线图  像素范围 params.batch[0].Range
             //        点的像素 this.myChart._chartsMap[0]._points
             //  对于折线图 range 和 coordRange 都与 刷选框 有偏差， 无法利用
@@ -180,11 +226,6 @@ export default {
             // ];
             // console.log(this.myChart.convertFromPixel({gridIndex: 0}, pos[0]));
             // console.log(this.myChart);
-            this.$notify({
-                title: '选择数据',
-                dangerouslyUseHTMLString: true,
-                message: brushed.join('</br>')
-            })
             // console.log(brushed);
         });
     },
@@ -230,4 +271,10 @@ export default {
 }
 </script>
 
-<style></style>
+<style>
+.tip {
+    background-color: #d3e0eca4;
+    position: absolute;
+    font: 1em sans-serif;
+}
+</style>
